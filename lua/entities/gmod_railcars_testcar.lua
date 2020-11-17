@@ -65,15 +65,13 @@ if SERVER then
         self:SetPos(self:GetPos()+Vector(0,0,35))
         self:SetCollisionGroup(20)
 
-        Bogie1 = ModelCreate(self,"prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles(),20,0)
-        self:DeleteOnRemove(Bogie1)
-
-        Bogie2 = ModelCreate(self,"prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles(),20,0)
-        self:DeleteOnRemove(Bogie2)
-
         if constraint.CanConstrain(self,0) then
+            Bogie1 = ModelCreate(self,"prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles(),0,0)
             constraint.Axis(Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+            Bogie2 = ModelCreate(self,"prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles(),0,0)
             constraint.Axis(Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+            self:DeleteOnRemove(Bogie1)
+            self:DeleteOnRemove(Bogie2)
         end
 
         self.AmbientTrack = CreateSound(self,Ambient)
