@@ -26,7 +26,7 @@ local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coa
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain04.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain05.wav"}
 local HandBrake = 0 --Don't Change
-local SpawnHeight = 35
+local SpawnHeight = 35 --temp
 
 
 local function ModelCreate(self,class,parent,model,position,angle,collisiongroup,rendermode)
