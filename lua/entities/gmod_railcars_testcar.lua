@@ -16,8 +16,6 @@ local Bogie2Pos = Vector(-201,0,-0.5)
 local HandBrakePos = Vector(267,-19,65)
 local CouplerPos = Vector(278,0,8)
 local CouplerPos2 = Vector(-278,0,8)
-local CutbarPos = Vector(263,-43,1)
-local CutbarPos2 = Vector(-263,43,1)
 local Ambient = "titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/wheels/defective/s_freightdefectivewheel02.wav"
 local BrakeAmbient = "titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/brakes/s_freightbraking03.wav"
 local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain01.wav",
@@ -28,21 +26,21 @@ local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coa
 local HandBrake = 0 --Don't Change
 local CanCouple = 1 --Don't Change
 local CanCouple2 = 1 --Don't Change
-local CouplerRopePoint = 169
+local CouplerRopePoint = 170
 
 
-local function ModelCreate(self,class,parent,model,position,angle,collisiongroup,rendermode)
+local function ModelCreate(class,parent,model,position,angle,collisiongroup,rendermode,creator)
     local ent = ents.Create(class)
+    ent:SetCreator(creator) --why does this not work???
     ent:SetParent(parent)
     ent:SetModel(model)
     ent:SetLocalAngles(angle)
     ent:SetRenderMode(rendermode)
-    ent:SetOwner(self:GetOwner())
     ent:Spawn()
     ent:SetCollisionGroup(collisiongroup)
     ent:GetPhysicsObject():SetMaterial("friction_00")
-    ent:PhysWake()
     ent:SetNWBool("LuaRailcars",true) 
+
 
     if parent == nil then
         ent:SetPos(position)
@@ -68,13 +66,31 @@ end
 
 
 if SERVER then
+    function ENT:SpawnFunction(ply,tr,ClassName)
+        if ( !tr.Hit ) then return end
+
+        local SpawnPos = tr.HitPos + tr.HitNormal * 10
+        local SpawnAng = ply:EyeAngles()
+        SpawnAng.p = 0
+        SpawnAng.y = SpawnAng.y + 180
+
+        local ent = ents.Create(ClassName)
+        ent:SetCreator(ply) --why does this not work?????!?!?1?!?
+        ent:SetPos(SpawnPos+Vector(0,0,50))
+        ent:SetAngles(SpawnAng)
+        ent:Spawn()
+        ent:Activate()
+        ent:DropToFloor()
+
+        return ent
+    end
+
     function ENT:Initialize()
         self:SetModel(Model)
         self:PhysicsInit(SOLID_VPHYSICS)
         self:SetMoveType(MOVETYPE_VPHYSICS)
         self:SetSolid(SOLID_VPHYSICS)
         self:SetUseType(SIMPLE_USE)
-        self:SetPos(self:GetPos()+Vector(0,0,35))
         self:SetCollisionGroup(20)
         self:SetNWBool("LuaRailcar", true) 
         HandBrake = 0 --Don't Change
@@ -82,13 +98,13 @@ if SERVER then
         CanCouple2 = 1 --Don't Change
 
         if constraint.CanConstrain(self,0) then
-            Bogie1 = ModelCreate(self,"prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0)
+            Bogie1 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
             Bogie1:SetBodygroup(1,2)
             Bogie1:SetSubMaterial(0,"models/proppertextures/wheel")
             Bogie1:SetSubMaterial(7,"models/proppertextures/wheel")
             constraint.Axis(Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-            Bogie2 = ModelCreate(self,"prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0)
+            Bogie2 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
             Bogie2:SetBodygroup(1,2)
             Bogie2:SetSubMaterial(0,"models/proppertextures/wheel")
             Bogie2:SetSubMaterial(7,"models/proppertextures/wheel")
@@ -99,14 +115,10 @@ if SERVER then
             self.Bogies = {Bogie1,Bogie2}
         end
 
-
         self.AmbientTrack = CreateSound(self,Ambient)
         self.AmbientTrack:PlayEx(1,0)
-        self:CallOnRemove("stoptracksound",function(self) self.AmbientTrack:Stop() end)
-
         self.AmbientBrake = CreateSound(self,BrakeAmbient)
         self.AmbientBrake:PlayEx(1,0)
-        self:CallOnRemove("stopbrakesound",function(self) self.AmbientBrake:Stop() end)
 
         if WireLib then
             --self.Inputs = WireLib.CreateSpecialInputs(self,{"Handbrake"},{"NORMAL"})
@@ -153,20 +165,6 @@ if SERVER then
                 WireLib.TriggerOutput(self,"Handbrake",HandBrake)
             end
         end
-
-        --[[
-        if PlayerWithinBounds(activator,self:LocalToWorld(CutbarPos),30) then
-            if constraint.FindConstraints(self.Bogies[1],"Rope") then
-                constraint.RemoveConstraints(self.Bogies[1],"Rope")
-            end
-        end
-
-        if PlayerWithinBounds(activator,self:LocalToWorld(CutbarPos2),30) then
-            if constraint.FindConstraints(self.Bogies[2],"Rope") then
-                constraint.RemoveConstraints(self.Bogies[2],"Rope")
-            end
-        end
-        ]]--
     end
 
     function ENT:Think()
@@ -227,6 +225,11 @@ if SERVER then
             end
         end
     end
+
+    function ENT:OnRemove()
+        self.AmbientTrack:Stop()
+        self.AmbientBrake:Stop()
+    end
 else
     function ENT:Draw()
         self:DrawModel()
@@ -236,8 +239,6 @@ else
         render.DrawWireframeBox(self:LocalToWorld(HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
         render.DrawWireframeBox(self:LocalToWorld(CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
         render.DrawWireframeBox(self:LocalToWorld(CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-        render.DrawWireframeBox(self:LocalToWorld(CutbarPos),self:GetAngles(),Vector(3,4,7),Vector(-3,-4,-7),Color(191,90,242),false) --cutbar
-        render.DrawWireframeBox(self:LocalToWorld(CutbarPos2),self:GetAngles(),Vector(3,4,7),Vector(-3,-4,-7),Color(191,90,242),false) --cutbar
         render.DrawWireframeSphere(self:LocalToWorld(CouplerPos),100,10,10,Color(100,210,255)) --coupler finder
         render.DrawWireframeSphere(self:LocalToWorld(CouplerPos2),100,10,10,Color(100,210,255)) --coupler finder
     end
