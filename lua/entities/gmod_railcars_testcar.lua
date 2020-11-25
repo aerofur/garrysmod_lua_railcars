@@ -28,10 +28,21 @@ local CanCouple = 1 --Don't Change
 local CanCouple2 = 1 --Don't Change
 local CouplerRopePoint = 170
 
+local function SetEntityOwner(ply,entity)
+    if not IsValid(entity) or not IsValid(ply) then return end
+    
+    if CPPI then
+        if not IsEntity(ply) then return end
+        
+        if IsValid(ply) then
+            entity:CPPISetOwner(ply)
+        end
+    end
+end
 
 local function ModelCreate(class,parent,model,position,angle,collisiongroup,rendermode,creator)
     local ent = ents.Create(class)
-    ent:SetCreator(creator) --why does this not work???
+    ent:SetCreator(creator)
     ent:SetParent(parent)
     ent:SetModel(model)
     ent:SetLocalAngles(angle)
@@ -40,6 +51,7 @@ local function ModelCreate(class,parent,model,position,angle,collisiongroup,rend
     ent:SetCollisionGroup(collisiongroup)
     ent:GetPhysicsObject():SetMaterial("friction_00")
     ent:SetNWBool("LuaRailcars",true) 
+    SetEntityOwner(creator,ent)
 
 
     if parent == nil then
@@ -75,8 +87,8 @@ if SERVER then
         SpawnAng.y = SpawnAng.y + 180
 
         local ent = ents.Create(ClassName)
-        ent:SetCreator(ply) --why does this not work?????!?!?1?!?
-        ent:SetPos(SpawnPos+Vector(0,0,50))
+        ent:SetCreator(ply)
+        ent:SetPos(SpawnPos)
         ent:SetAngles(SpawnAng)
         ent:Spawn()
         ent:Activate()
@@ -97,34 +109,32 @@ if SERVER then
         CanCouple = 1 --Don't Change
         CanCouple2 = 1 --Don't Change
 
-        if constraint.CanConstrain(self,0) then
-            Bogie1 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
-            Bogie1:SetBodygroup(1,2)
-            Bogie1:SetSubMaterial(0,"models/proppertextures/wheel")
-            Bogie1:SetSubMaterial(7,"models/proppertextures/wheel")
-            constraint.Axis(Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+        timer.Simple(0,function()
+            self:SetPos(self:GetPos()+Vector(0,0,20))
 
-            Bogie2 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
-            Bogie2:SetBodygroup(1,2)
-            Bogie2:SetSubMaterial(0,"models/proppertextures/wheel")
-            Bogie2:SetSubMaterial(7,"models/proppertextures/wheel")
-            constraint.Axis(Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+            if constraint.CanConstrain(self,0) then
+                Bogie1 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
+                Bogie1:SetBodygroup(1,2)
+                Bogie1:SetSubMaterial(0,"models/proppertextures/wheel")
+                Bogie1:SetSubMaterial(7,"models/proppertextures/wheel")
+                constraint.Axis(Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-            self:DeleteOnRemove(Bogie1)
-            self:DeleteOnRemove(Bogie2)
-            self.Bogies = {Bogie1,Bogie2}
-        end
+                Bogie2 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
+                Bogie2:SetBodygroup(1,2)
+                Bogie2:SetSubMaterial(0,"models/proppertextures/wheel")
+                Bogie2:SetSubMaterial(7,"models/proppertextures/wheel")
+                constraint.Axis(Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+
+                self:DeleteOnRemove(Bogie1)
+                self:DeleteOnRemove(Bogie2)
+                self.Bogies = {Bogie1,Bogie2}
+            end
+        end)
 
         self.AmbientTrack = CreateSound(self,Ambient)
         self.AmbientTrack:PlayEx(1,0)
         self.AmbientBrake = CreateSound(self,BrakeAmbient)
         self.AmbientBrake:PlayEx(1,0)
-
-        if WireLib then
-            --self.Inputs = WireLib.CreateSpecialInputs(self,{"Handbrake"},{"NORMAL"})
-            self.Outputs = WireLib.CreateSpecialOutputs(self,{"Handbrake"},{"NORMAL"})
-            self.WireDebugName = "railcar"
-        end
     end
 
     function ENT:PostEntityPaste(ply,ent,createdEntities)
@@ -159,10 +169,6 @@ if SERVER then
                 if IsValid(Bogie2) then
                     Bogie2:GetPhysicsObject():SetMaterial("friction_00")
                 end
-            end
-
-            if WireLib then
-                WireLib.TriggerOutput(self,"Handbrake",HandBrake)
             end
         end
     end
@@ -231,6 +237,7 @@ if SERVER then
         self.AmbientBrake:Stop()
     end
 else
+    --[[
     function ENT:Draw()
         self:DrawModel()
         render.DrawWireframeBox(self:GetPos(),self:GetAngles(),self:OBBMins(),self:OBBMaxs(),Color(255,0,0),false) --car bounding
@@ -242,5 +249,10 @@ else
         render.DrawWireframeSphere(self:LocalToWorld(CouplerPos),100,10,10,Color(100,210,255)) --coupler finder
         render.DrawWireframeSphere(self:LocalToWorld(CouplerPos2),100,10,10,Color(100,210,255)) --coupler finder
     end
+    ]]--
     return
 end
+
+duplicator.RegisterEntityClass("gmod_railcars_testcar", function(ply, data)
+	return duplicator.GenericDuplicatorFunction(ply, data)
+end, "Data")
