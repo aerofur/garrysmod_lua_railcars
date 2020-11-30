@@ -23,9 +23,6 @@ local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coa
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain03.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain04.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain05.wav"}
-local HandBrake = 0 --Don't Change
-local CanCouple = 1 --Don't Change
-local CanCouple2 = 1 --Don't Change
 local CouplerRopePoint = 170
 
 local function SetEntityOwner(ply,entity)
@@ -76,7 +73,6 @@ local function EntityOutsideBounds(ply,otherPly,dist)
 	return ply:GetPos():DistToSqr(otherPly:GetPos()) > (dist*dist)
 end
 
-
 if SERVER then
     function ENT:SpawnFunction(ply,tr,ClassName)
         if ( !tr.Hit ) then return end
@@ -88,7 +84,7 @@ if SERVER then
 
         local ent = ents.Create(ClassName)
         ent:SetCreator(ply)
-        ent:SetPos(SpawnPos)
+        ent:SetPos(SpawnPos+Vector(0,0,20))
         ent:SetAngles(SpawnAng)
         ent:Spawn()
         ent:Activate()
@@ -105,31 +101,23 @@ if SERVER then
         self:SetUseType(SIMPLE_USE)
         self:SetCollisionGroup(20)
         self:SetNWBool("LuaRailcar", true) 
-        HandBrake = 0 --Don't Change
-        CanCouple = 1 --Don't Change
-        CanCouple2 = 1 --Don't Change
+        self.HandBrake = 0 --Don't Change
+        self.CanCouple = 1 --Don't Change
+        self.CanCouple2 = 1 --Don't Change
 
-        timer.Simple(0,function()
-            self:SetPos(self:GetPos()+Vector(0,0,20))
+        if constraint.CanConstrain(self,0) then
+            self.Bogie1 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
+            self.Bogie1:SetBodygroup(1,2)
+            constraint.Axis(self.Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-            if constraint.CanConstrain(self,0) then
-                Bogie1 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
-                Bogie1:SetBodygroup(1,2)
-                Bogie1:SetSubMaterial(0,"models/proppertextures/wheel")
-                Bogie1:SetSubMaterial(7,"models/proppertextures/wheel")
-                constraint.Axis(Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+            self.Bogie2 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
+            self.Bogie2:SetBodygroup(1,2)
+            constraint.Axis(self.Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-                Bogie2 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
-                Bogie2:SetBodygroup(1,2)
-                Bogie2:SetSubMaterial(0,"models/proppertextures/wheel")
-                Bogie2:SetSubMaterial(7,"models/proppertextures/wheel")
-                constraint.Axis(Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
-
-                self:DeleteOnRemove(Bogie1)
-                self:DeleteOnRemove(Bogie2)
-                self.Bogies = {Bogie1,Bogie2}
-            end
-        end)
+            self:DeleteOnRemove(self.Bogie1)
+            self:DeleteOnRemove(self.Bogie2)
+            self.Bogies = {self.Bogie1,self.Bogie2}
+        end
 
         self.AmbientTrack = CreateSound(self,Ambient)
         self.AmbientTrack:PlayEx(1,0)
@@ -138,36 +126,45 @@ if SERVER then
     end
 
     function ENT:PostEntityPaste(ply,ent,createdEntities)
-        if IsValid(Bogie1) then
-            Bogie1:Remove()
+        if IsValid(self.Bogie1) then
+            self.Bogie1:Remove()
         end
-        if IsValid(Bogie2) then
-            Bogie2:Remove()
+        if IsValid(self.Bogie2) then
+            self.Bogie2:Remove()
+        end
+
+        local I = 0
+
+        for index,Entity in pairs(createdEntities) do
+            if Entity:GetClass() == "prop_physics" then
+                I = I+1
+                self.Bogies[I] = Entity
+            end
         end
     end
 
     function ENT:Use(activator,caller,type,value)
         if (!activator:IsPlayer()) then return end	
         if PlayerWithinBounds(activator,self:LocalToWorld(HandBrakePos),45) then
-            HandBrake = HandBrake+1
-            if(HandBrake > 1) then HandBrake = 0 end
+            self.HandBrake = self.HandBrake+1
+            if self.HandBrake > 1 then self.HandBrake = 0 end
 
             self.HandBrakeSound = CreateSound(self,HandBrakeChain[math.random(1,5)])
             self.HandBrakeSound:PlayEx(1,100)
 
-            if HandBrake == 1 then
-                if IsValid(Bogie1) then
-                    Bogie1:GetPhysicsObject():SetMaterial("metal")
+            if self.HandBrake == 1 then
+                if IsValid(self.Bogies[1]) then
+                    self.Bogies[1]:GetPhysicsObject():SetMaterial("metal")
                 end
-                if IsValid(Bogie2) then
-                    Bogie2:GetPhysicsObject():SetMaterial("metal")
+                if IsValid(self.Bogies[2]) then
+                    self.Bogies[2]:GetPhysicsObject():SetMaterial("metal")
                 end
             else
-                if IsValid(Bogie1) then
-                    Bogie1:GetPhysicsObject():SetMaterial("friction_00")
+                if IsValid(self.Bogies[1]) then
+                    self.Bogies[1]:GetPhysicsObject():SetMaterial("friction_00")
                 end
-                if IsValid(Bogie2) then
-                    Bogie2:GetPhysicsObject():SetMaterial("friction_00")
+                if IsValid(self.Bogies[2]) then
+                    self.Bogies[2]:GetPhysicsObject():SetMaterial("friction_00")
                 end
             end
         end
@@ -179,7 +176,7 @@ if SERVER then
         local Velocity = self:GetPhysicsObject():GetVelocity():Length()
         local VelocityClamped = math.Clamp(Velocity/5,0,250)
         self.AmbientTrack:ChangePitch(VelocityClamped)
-        self.AmbientBrake:ChangePitch(VelocityClamped*HandBrake)
+        self.AmbientBrake:ChangePitch(VelocityClamped*self.HandBrake)
 
         for index,Entity in pairs(CouplerFind) do
             if Entity:GetClass() == "prop_physics" then
@@ -187,18 +184,18 @@ if SERVER then
                     if constraint.Find(self,Entity,"Axis",0,0) == nil then
                         if constraint.Find(self.Bogies[1],Entity,"Rope",0,0) then return end
                         
-                        if CanCouple == 1 then
+                        if self.CanCouple == 1 then
                             if EntityWithinBounds(self.Bogies[1],Entity,CouplerRopePoint) then
                                 timer.Simple(0,function()
                                     constraint.Rope(self.Bogies[1],Entity,0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity:GetPos()),0,0,1.5,"cable/cable",true)
                                     self.CoupleSound = CreateSound(self,"opencontrol/misc/couple1.wav")
                                     self.CoupleSound:PlayEx(1,100)
-                                    CanCouple = 0
+                                    self.CanCouple = 0
                                 end)
                             end
                         else
                             if EntityOutsideBounds(self.Bogies[1],Entity,200) then
-                                CanCouple = 1
+                                self.CanCouple = 1
                             end
                         end
                     end
@@ -212,18 +209,18 @@ if SERVER then
                     if constraint.Find(self,Entity,"Axis",0,0) == nil then
                         if constraint.Find(self.Bogies[2],Entity,"Rope",0,0) then return end
                         
-                        if CanCouple == 1 then
+                        if self.CanCouple2 == 1 then
                             if EntityWithinBounds(self.Bogies[2],Entity,CouplerRopePoint) then
                                 timer.Simple(0,function()
                                     constraint.Rope(self.Bogies[2],Entity,0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity:GetPos()),0,0,1.5,"cable/cable",true)
                                     self.CoupleSound = CreateSound(self,"opencontrol/misc/couple1.wav")
                                     self.CoupleSound:PlayEx(1,100)
-                                    CanCouple = 0
+                                    self.CanCouple2 = 0
                                 end)
                             end
                         else
                             if EntityOutsideBounds(self.Bogies[2],Entity,200) then
-                                CanCouple = 1
+                                self.CanCouple2 = 1
                             end
                         end
                     end
