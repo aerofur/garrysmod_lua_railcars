@@ -9,6 +9,28 @@ ENT.Editable = true
 ENT.Spawnable = true
 ENT.AdminOnly = false
 
+function ENT:SetupDataTables()
+    self:NetworkVar("Bool",0,"Debug",{KeyName = "Debug Mode", Edit = {type = "Boolean", order = 0}})
+    self:NetworkVar("Bool",1,"CouplingEnable",{KeyName = "Auto Coupling", Edit = {type = "Boolean", order = 1}})
+    self:NetworkVar("Float",0,"CouplingRopePoint",{KeyName = "Coupling Rope Point", Edit = {type = "Float", order = 2, min = 0, max = 9999}})
+    self:NetworkVar("Float",1,"CouplingOutofBounds",{KeyName = "Coupling Out of Bounds", Edit = {type = "Float", order = 3, min = 0, max = 9999}})
+    self:NetworkVar("Float",2,"CoupleRopeWidth",{KeyName = "Width of the Auto Couple Rope", Edit = {type = "Float", order = 4, min = 0, max = 9999}})
+    self:NetworkVar("String",0,"BrakeMaterial",{KeyName = "Handbrake Material", Edit = {type = "Generic", order = 5}})
+    self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 6, category = "Sounds"}})
+    self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 7, category = "Sounds"}})
+    self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
+
+    self:SetDebug(false)
+    self:SetCoupleRopeWidth(1.5)
+    self:SetCouplingOutofBounds(200)
+    self:SetCouplingEnable(true)
+    self:SetAmbient("titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/wheels/defective/s_freightdefectivewheel02.wav")
+    self:SetBrakeAmbient("titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/brakes/s_freightbraking03.wav")
+    self:SetCoupleSound("opencontrol/misc/couple1.wav")
+    self:SetCouplingRopePoint(170)
+    self:SetBrakeMaterial("metal")
+end
+
 local Model = "models/lazpack/freightcars/trinity_3230_pd.mdl"
 local BogieModel = "models/magtrains/trucks/barber_s2_rsg.mdl"
 local Bogie1Pos = Vector(201,0,-0.5)
@@ -16,14 +38,11 @@ local Bogie2Pos = Vector(-201,0,-0.5)
 local HandBrakePos = Vector(267,-19,65)
 local CouplerPos = Vector(278,0,8)
 local CouplerPos2 = Vector(-278,0,8)
-local Ambient = "titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/wheels/defective/s_freightdefectivewheel02.wav"
-local BrakeAmbient = "titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/brakes/s_freightbraking03.wav"
 local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain01.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain02.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain03.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain04.wav",
                         "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain05.wav"}
-local CouplerRopePoint = 170
 
 local function SetEntityOwner(ply,entity)
     if not IsValid(entity) or not IsValid(ply) then return end
@@ -119,9 +138,9 @@ if SERVER then
             self.Bogies = {self.Bogie1,self.Bogie2}
         end
 
-        self.AmbientTrack = CreateSound(self,Ambient)
+        self.AmbientTrack = CreateSound(self,self:GetAmbient())
         self.AmbientTrack:PlayEx(1,0)
-        self.AmbientBrake = CreateSound(self,BrakeAmbient)
+        self.AmbientBrake = CreateSound(self,self:GetBrakeAmbient())
         self.AmbientBrake:PlayEx(1,0)
     end
 
@@ -154,10 +173,10 @@ if SERVER then
 
             if self.HandBrake == 1 then
                 if IsValid(self.Bogies[1]) then
-                    self.Bogies[1]:GetPhysicsObject():SetMaterial("metal")
+                    self.Bogies[1]:GetPhysicsObject():SetMaterial(self:GetBrakeMaterial())
                 end
                 if IsValid(self.Bogies[2]) then
-                    self.Bogies[2]:GetPhysicsObject():SetMaterial("metal")
+                    self.Bogies[2]:GetPhysicsObject():SetMaterial(self:GetBrakeMaterial())
                 end
             else
                 if IsValid(self.Bogies[1]) then
@@ -178,49 +197,51 @@ if SERVER then
         self.AmbientTrack:ChangePitch(VelocityClamped)
         self.AmbientBrake:ChangePitch(VelocityClamped*self.HandBrake)
 
-        for index,Entity in pairs(CouplerFind) do
-            if Entity:GetClass() == "prop_physics" then
-                if Entity:GetNWBool("LuaRailcars",false) ~= false then
-                    if constraint.Find(self,Entity,"Axis",0,0) == nil then
-                        if constraint.Find(self.Bogies[1],Entity,"Rope",0,0) then return end
-                        
-                        if self.CanCouple == 1 then
-                            if EntityWithinBounds(self.Bogies[1],Entity,CouplerRopePoint) then
-                                timer.Simple(0,function()
-                                    constraint.Rope(self.Bogies[1],Entity,0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity:GetPos()),0,0,1.5,"cable/cable",true)
-                                    self.CoupleSound = CreateSound(self,"opencontrol/misc/couple1.wav")
-                                    self.CoupleSound:PlayEx(1,100)
-                                    self.CanCouple = 0
-                                end)
-                            end
-                        else
-                            if EntityOutsideBounds(self.Bogies[1],Entity,200) then
-                                self.CanCouple = 1
+        if self:GetCouplingEnable() == true then
+            for index,Entity in pairs(CouplerFind) do
+                if Entity:GetClass() == "prop_physics" then
+                    if Entity:GetNWBool("LuaRailcars",false) ~= false then
+                        if constraint.Find(self,Entity,"Axis",0,0) == nil then
+                            if constraint.Find(self.Bogies[1],Entity,"Rope",0,0) then return end
+                            
+                            if self.CanCouple == 1 then
+                                if EntityWithinBounds(self.Bogies[1],Entity,self:GetCouplingRopePoint()) then
+                                    timer.Simple(0,function()
+                                        constraint.Rope(self.Bogies[1],Entity,0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                                        self.CoupleSound = CreateSound(self,self:GetCoupleSound())
+                                        self.CoupleSound:PlayEx(1,100)
+                                        self.CanCouple = 0
+                                    end)
+                                end
+                            else
+                                if EntityOutsideBounds(self.Bogies[1],Entity,self:GetCouplingOutofBounds()) then
+                                    self.CanCouple = 1
+                                end
                             end
                         end
                     end
                 end
             end
-        end
 
-        for index,Entity in pairs(CouplerFind2) do
-            if Entity:GetClass() == "prop_physics" then
-                if Entity:GetNWBool("LuaRailcars",false) ~= false then
-                    if constraint.Find(self,Entity,"Axis",0,0) == nil then
-                        if constraint.Find(self.Bogies[2],Entity,"Rope",0,0) then return end
-                        
-                        if self.CanCouple2 == 1 then
-                            if EntityWithinBounds(self.Bogies[2],Entity,CouplerRopePoint) then
-                                timer.Simple(0,function()
-                                    constraint.Rope(self.Bogies[2],Entity,0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity:GetPos()),0,0,1.5,"cable/cable",true)
-                                    self.CoupleSound = CreateSound(self,"opencontrol/misc/couple1.wav")
-                                    self.CoupleSound:PlayEx(1,100)
-                                    self.CanCouple2 = 0
-                                end)
-                            end
-                        else
-                            if EntityOutsideBounds(self.Bogies[2],Entity,200) then
-                                self.CanCouple2 = 1
+            for index,Entity in pairs(CouplerFind2) do
+                if Entity:GetClass() == "prop_physics" then
+                    if Entity:GetNWBool("LuaRailcars",false) ~= false then
+                        if constraint.Find(self,Entity,"Axis",0,0) == nil then
+                            if constraint.Find(self.Bogies[2],Entity,"Rope",0,0) then return end
+                            
+                            if self.CanCouple2 == 1 then
+                                if EntityWithinBounds(self.Bogies[2],Entity,self:GetCouplingRopePoint()) then
+                                    timer.Simple(0,function()
+                                        constraint.Rope(self.Bogies[2],Entity,0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                                        self.CoupleSound = CreateSound(self,self:GetCoupleSound())
+                                        self.CoupleSound:PlayEx(1,100)
+                                        self.CanCouple2 = 0
+                                    end)
+                                end
+                            else
+                                if EntityOutsideBounds(self.Bogies[2],Entity,self:GetCouplingOutofBounds()) then
+                                    self.CanCouple2 = 1
+                                end
                             end
                         end
                     end
@@ -234,19 +255,20 @@ if SERVER then
         self.AmbientBrake:Stop()
     end
 else
-    --[[
     function ENT:Draw()
         self:DrawModel()
-        render.DrawWireframeBox(self:GetPos(),self:GetAngles(),self:OBBMins(),self:OBBMaxs(),Color(255,0,0),false) --car bounding
-        render.DrawWireframeBox(self:LocalToWorld(Bogie1Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
-        render.DrawWireframeBox(self:LocalToWorld(Bogie2Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
-        render.DrawWireframeBox(self:LocalToWorld(HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
-        render.DrawWireframeBox(self:LocalToWorld(CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-        render.DrawWireframeBox(self:LocalToWorld(CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-        render.DrawWireframeSphere(self:LocalToWorld(CouplerPos),100,10,10,Color(100,210,255)) --coupler finder
-        render.DrawWireframeSphere(self:LocalToWorld(CouplerPos2),100,10,10,Color(100,210,255)) --coupler finder
+
+        if self:GetDebug() == true then 
+            render.DrawWireframeBox(self:GetPos(),self:GetAngles(),self:OBBMins(),self:OBBMaxs(),Color(255,0,0),false) --car bounding
+            render.DrawWireframeBox(self:LocalToWorld(Bogie1Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
+            render.DrawWireframeBox(self:LocalToWorld(Bogie2Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
+            render.DrawWireframeBox(self:LocalToWorld(HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
+            render.DrawWireframeBox(self:LocalToWorld(CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
+            render.DrawWireframeBox(self:LocalToWorld(CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
+            render.DrawWireframeSphere(self:LocalToWorld(CouplerPos),100,10,10,Color(100,210,255)) --coupler finder
+            render.DrawWireframeSphere(self:LocalToWorld(CouplerPos2),100,10,10,Color(100,210,255)) --coupler finder
+        end
     end
-    ]]--
     return
 end
 
