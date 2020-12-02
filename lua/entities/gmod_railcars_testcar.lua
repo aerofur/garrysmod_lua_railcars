@@ -103,7 +103,7 @@ if SERVER then
 
         local ent = ents.Create(ClassName)
         ent:SetCreator(ply)
-        ent:SetPos(SpawnPos+Vector(0,0,20))
+        ent:SetPos(SpawnPos+Vector(0,0,65))
         ent:SetAngles(SpawnAng)
         ent:Spawn()
         ent:Activate()
@@ -190,8 +190,8 @@ if SERVER then
     end
 
     function ENT:Think()
-        local CouplerFind = ents.FindInSphere(self:LocalToWorld(CouplerPos),100)
-        local CouplerFind2 = ents.FindInSphere(self:LocalToWorld(CouplerPos2),100)
+        local CouplerFind = ents.FindAlongRay(self:LocalToWorld(CouplerPos+Vector(0,0,-18)),self:LocalToWorld(CouplerPos+Vector(100,0,-18)))
+        local CouplerFind2 = ents.FindAlongRay(self:LocalToWorld(CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(CouplerPos2+Vector(-100,0,-18)))
         local Velocity = self:GetPhysicsObject():GetVelocity():Length()
         local VelocityClamped = math.Clamp(Velocity/5,0,250)
         self.AmbientTrack:ChangePitch(VelocityClamped)
@@ -202,7 +202,7 @@ if SERVER then
                 if Entity:GetClass() == "prop_physics" then
                     if Entity:GetNWBool("LuaRailcars",false) ~= false then
                         if constraint.Find(self,Entity,"Axis",0,0) == nil then
-                            if constraint.Find(self.Bogies[1],Entity,"Rope",0,0) then return end
+                            if constraint.Find(self.Bogies[1],Entity,"Rope",0,0) then self.CanCouple = 0 return end
                             
                             if self.CanCouple == 1 then
                                 if EntityWithinBounds(self.Bogies[1],Entity,self:GetCouplingRopePoint()) then
@@ -227,7 +227,7 @@ if SERVER then
                 if Entity:GetClass() == "prop_physics" then
                     if Entity:GetNWBool("LuaRailcars",false) ~= false then
                         if constraint.Find(self,Entity,"Axis",0,0) == nil then
-                            if constraint.Find(self.Bogies[2],Entity,"Rope",0,0) then return end
+                            if constraint.Find(self.Bogies[2],Entity,"Rope",0,0) then self.CanCouple2 = 0 return end
                             
                             if self.CanCouple2 == 1 then
                                 if EntityWithinBounds(self.Bogies[2],Entity,self:GetCouplingRopePoint()) then
@@ -265,8 +265,8 @@ else
             render.DrawWireframeBox(self:LocalToWorld(HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
             render.DrawWireframeBox(self:LocalToWorld(CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
             render.DrawWireframeBox(self:LocalToWorld(CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-            render.DrawWireframeSphere(self:LocalToWorld(CouplerPos),100,10,10,Color(100,210,255)) --coupler finder
-            render.DrawWireframeSphere(self:LocalToWorld(CouplerPos2),100,10,10,Color(100,210,255)) --coupler finder
+            render.DrawLine(self:LocalToWorld(CouplerPos+Vector(0,0,-18)),self:LocalToWorld(CouplerPos+Vector(100,0,-18)),Color(100,210,255)) --coupler finder
+            render.DrawLine(self:LocalToWorld(CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(CouplerPos2+Vector(-100,0,-18)),Color(100,210,255)) --coupler finder
         end
     end
     return
