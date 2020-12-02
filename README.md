@@ -15,4 +15,4 @@ Stats taken while cars were frozen, with auto-coupling enabled.
 
 1. CPU Time: `162.01µs` @ 960 Cars
 2. CPU Time: `138.04µs` @ 0 Cars
-3. Difference: `23.97µs` @ 960 Cars
+3. Difference: `23.97µs`
