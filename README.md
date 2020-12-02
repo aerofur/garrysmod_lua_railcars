@@ -9,3 +9,10 @@ Lua Scripted Entity Railcars.
 1. Open your spawnmenu and goto the `Entities` tab.
 2. Click on `Railcars` Category.
 3. And spawn a car!
+
+### Performance Metrics
+Stats taken while cars were frozen, with auto-coupling enabled.
+
+1. CPU Time: `162.01µs` @ 960 Cars
+2. CPU Time: `138.04µs` @ 0 Cars
+3. Difference: `23.97µs` @ 960 Cars
