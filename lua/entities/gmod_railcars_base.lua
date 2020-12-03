@@ -6,7 +6,7 @@ ENT.Author = "Titus Studios"
 ENT.Category = "Railcars"
 ENT.RenderGroup	= RENDERGROUP_OPAQUE
 ENT.Editable = true
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 
 function ENT:SetupDataTables()
@@ -70,28 +70,8 @@ local function EntityOutsideBounds(ply,otherPly,dist)
 end
 
 if SERVER then
-    function ENT:SpawnFunction(ply,tr,ClassName)
-        if ( !tr.Hit ) then return end
-
-        local SpawnPos = tr.HitPos + tr.HitNormal * 10
-        local SpawnAng = ply:EyeAngles()
-        SpawnAng.p = 0
-        SpawnAng.y = SpawnAng.y + 180
-
-        local ent = ents.Create(ClassName)
-        ent:SetCreator(ply)
-        ent:SetPos(SpawnPos)
-        ent:SetAngles(SpawnAng)
-        ent:Spawn()
-        ent:Activate()
-        ent:DropToFloor()
-
-        return ent
-    end
-
     function ENT:Initialize()
         timer.Simple(0,function()
-            self:SetModel(self.Model)
             self:SetPos(self:GetPos()+Vector(0,0,35))
             self:PhysicsInit(SOLID_VPHYSICS)
             self:SetMoveType(MOVETYPE_VPHYSICS)
@@ -103,20 +83,21 @@ if SERVER then
             self.CanCouple = 1 --Don't Change
             self.CanCouple2 = 1 --Don't Change
 
-            if constraint.CanConstrain(self,0) then
-                self.Bogie1 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie1Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
-                self.Bogie1:SetBodygroup(1,2)
-                constraint.Axis(self.Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+            if table.Count(constraint.FindConstraints(self,"Axis")) < 2 then
+                if constraint.CanConstrain(self,0) then
+                    self.Bogie1 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie1Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
+                    self.Bogie1:SetBodygroup(1,self.BogieBodygroup)
+                    constraint.Axis(self.Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-                self.Bogie2 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie2Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
-                self.Bogie2:SetBodygroup(1,2)
-                constraint.Axis(self.Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+                    self.Bogie2 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie2Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
+                    self.Bogie2:SetBodygroup(1,self.BogieBodygroup)
+                    constraint.Axis(self.Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-                self:DeleteOnRemove(self.Bogie1)
-                self:DeleteOnRemove(self.Bogie2)
-                self.Bogies = {self.Bogie1,self.Bogie2}
+                    self:DeleteOnRemove(self.Bogie1)
+                    self:DeleteOnRemove(self.Bogie2)
+                    self.Bogies = {self.Bogie1,self.Bogie2}
+                end
             end
-
             self.AmbientTrack = CreateSound(self,self:GetAmbient())
             self.AmbientTrack:PlayEx(1,0)
             self.AmbientBrake = CreateSound(self,self:GetBrakeAmbient())
@@ -143,7 +124,7 @@ if SERVER then
     end
 
     function ENT:Use(activator,caller,type,value)
-        if (!activator:IsPlayer()) then return end	
+        if !activator:IsPlayer() then return end	
         if PlayerWithinBounds(activator,self:LocalToWorld(self.HandBrakePos),45) then
             self.HandBrake = self.HandBrake+1
             if self.HandBrake > 1 then self.HandBrake = 0 end
@@ -238,20 +219,23 @@ else
     function ENT:Draw()
         self:DrawModel()
 
+        local Config = list.Get("railcars")[self.CarType]
+
         if self:GetDebug() == true then 
             render.DrawWireframeBox(self:GetPos(),self:GetAngles(),self:OBBMins(),self:OBBMaxs(),Color(255,0,0),false) --car bounding
-            render.DrawWireframeBox(self:LocalToWorld(self.Bogie1Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
-            render.DrawWireframeBox(self:LocalToWorld(self.Bogie2Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
-            render.DrawWireframeBox(self:LocalToWorld(self.HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
-            render.DrawWireframeBox(self:LocalToWorld(self.CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-            render.DrawWireframeBox(self:LocalToWorld(self.CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-            render.DrawLine(self:LocalToWorld(self.CouplerPos+Vector(0,0,-18)),self:LocalToWorld(self.CouplerPos+Vector(100,0,-18)),Color(100,210,255)) --coupler finder
-            render.DrawLine(self:LocalToWorld(self.CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(self.CouplerPos2+Vector(-100,0,-18)),Color(100,210,255)) --coupler finder
+            render.DrawWireframeBox(self:LocalToWorld(Config.Bogie1Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
+            render.DrawWireframeBox(self:LocalToWorld(Config.Bogie2Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
+            render.DrawWireframeBox(self:LocalToWorld(Config.HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
+            render.DrawWireframeBox(self:LocalToWorld(Config.CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
+            render.DrawWireframeBox(self:LocalToWorld(Config.CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
+            render.DrawLine(self:LocalToWorld(Config.CouplerPos+Vector(0,0,-18)),self:LocalToWorld(Config.CouplerPos+Vector(100,0,-18)),Color(100,210,255)) --coupler finder
+            render.DrawLine(self:LocalToWorld(Config.CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(Config.CouplerPos2+Vector(-100,0,-18)),Color(100,210,255)) --coupler finder
         end
     end
     return
 end
 
-duplicator.RegisterEntityClass("gmod_railcars_testcar", function(ply, data)
+duplicator.RegisterEntityClass("gmod_railcars_base", function(ply, data)
 	return duplicator.GenericDuplicatorFunction(ply, data)
-end, "Data")
+end, "Data", "CarType", "Debug", "CoupleRopeWidth", "CouplingOutofBounds", "CouplingEnable", "Ambient", "BrakeAmbient", "CoupleSound", "CouplingRopePoint", "BrakeMaterial",
+"Model", "BogieModel", "BogieBodygroup", "BogieAngle", "Bogie1Pos", "Bogie2Pos", "HandBrakePos", "CouplerPos", "CouplerPos2", "HandBrakeChain")
