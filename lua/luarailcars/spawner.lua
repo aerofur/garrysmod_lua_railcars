@@ -19,17 +19,24 @@ local function SpawnCar(ply,args)
     SpawnAng.p = 0
     SpawnAng.y = SpawnAng.y + 180
 
+    local Config = list.Get("railcars")[args]
+
     local ent = ents.Create("gmod_railcars_base")
+    ent:SetModel(Config.Model)
     ent:SetCreator(ply)
     ent:SetPos(SpawnPos)
     ent:SetAngles(SpawnAng)
     ent:Spawn()
     ent:Activate()
     ent:DropToFloor()
-    ent:SetNWString("CarType",args)
-    SetEntityOwner(ply,ent)
+    ent:PhysicsInit(SOLID_VPHYSICS)
+    ent:SetMoveType(MOVETYPE_VPHYSICS)
+    ent:SetSolid(SOLID_VPHYSICS)
+    ent:SetUseType(SIMPLE_USE)
+    ent:SetCollisionGroup(20)
 
-    local Config = list.Get("railcars")[args]
+    ent.CarType = args
+    SetEntityOwner(ply,ent)
     
     ent:SetDebug(Config.Debug)
     ent:SetCoupleRopeWidth(Config.CoupleRopeWidth)
@@ -43,6 +50,7 @@ local function SpawnCar(ply,args)
 
     ent.Model = Config.Model
     ent.BogieModel = Config.BogieModel
+    ent.BogieBodygroup = Config.BogieBodygroup
     ent.BogieAngle = Config.BogieAngle
     ent.Bogie1Pos = Config.Bogie1Pos
     ent.Bogie2Pos = Config.Bogie2Pos
