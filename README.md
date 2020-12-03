@@ -6,8 +6,8 @@ Lua Scripted Entity Railcars.
 2. Extract the the files inside of the folder `garrysmod_lua_railcars-[BRANCH]` into `Garrysmod/garrysmod/`.
 
 ### Operation
-1. Open your spawnmenu and goto the `Entities` tab.
-2. Click on `Railcars` Category.
+1. Open your spawnmenu and goto the `railcars` tab.
+2. Click on a Category.
 3. And spawn a car!
 
 ### Performance Metrics
