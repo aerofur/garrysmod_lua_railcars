@@ -19,33 +19,8 @@ function ENT:SetupDataTables()
     self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 6, category = "Sounds"}})
     self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 7, category = "Sounds"}})
     self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
-
-    --[[
-    self:SetDebug(false)
-    self:SetCoupleRopeWidth(1.5)
-    self:SetCouplingOutofBounds(200)
-    self:SetCouplingEnable(true)
-    self:SetAmbient("titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/wheels/defective/s_freightdefectivewheel02.wav")
-    self:SetBrakeAmbient("titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/brakes/s_freightbraking03.wav")
-    self:SetCoupleSound("opencontrol/misc/couple1.wav")
-    self:SetCouplingRopePoint(170)
-    self:SetBrakeMaterial("metal")
-    ]]--
 end
---[[
-local Model = "models/lazpack/freightcars/trinity_3230_pd.mdl"
-local BogieModel = "models/magtrains/trucks/barber_s2_rsg.mdl"
-local Bogie1Pos = Vector(201,0,-0.5)
-local Bogie2Pos = Vector(-201,0,-0.5)
-local HandBrakePos = Vector(267,-19,65)
-local CouplerPos = Vector(278,0,8)
-local CouplerPos2 = Vector(-278,0,8)
-local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain01.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain02.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain03.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain04.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain05.wav"}
-]]--
+
 local function SetEntityOwner(ply,entity)
     if not IsValid(entity) or not IsValid(ply) then return end
     
