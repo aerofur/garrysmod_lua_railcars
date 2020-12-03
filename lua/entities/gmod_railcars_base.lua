@@ -12,13 +12,14 @@ ENT.AdminOnly = false
 function ENT:SetupDataTables()
     self:NetworkVar("Bool",0,"Debug",{KeyName = "Debug Mode", Edit = {type = "Boolean", order = 0}})
     self:NetworkVar("Bool",1,"CouplingEnable",{KeyName = "Auto Coupling", Edit = {type = "Boolean", order = 1}})
-    self:NetworkVar("Float",0,"CouplingRopePoint",{KeyName = "Coupling Rope Point", Edit = {type = "Float", order = 2, min = 0, max = 9999}})
-    self:NetworkVar("Float",1,"CouplingOutofBounds",{KeyName = "Coupling Out of Bounds", Edit = {type = "Float", order = 3, min = 0, max = 9999}})
-    self:NetworkVar("Float",2,"CoupleRopeWidth",{KeyName = "Width of the Auto Couple Rope", Edit = {type = "Float", order = 4, min = 0, max = 9999}})
-    self:NetworkVar("String",0,"BrakeMaterial",{KeyName = "Handbrake Material", Edit = {type = "Generic", order = 5}})
-    self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 6, category = "Sounds"}})
-    self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 7, category = "Sounds"}})
-    self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
+    self:NetworkVar("Bool",3,"HandbrakeEnable",{KeyName = "Handbrake Enable", Edit = {type = "Boolean", order = 2}})
+    self:NetworkVar("Float",0,"CouplingRopePoint",{KeyName = "Coupling Rope Point", Edit = {type = "Float", order = 3, min = 0, max = 9999}})
+    self:NetworkVar("Float",1,"CouplingOutofBounds",{KeyName = "Coupling Out of Bounds", Edit = {type = "Float", order = 4, min = 0, max = 9999}})
+    self:NetworkVar("Float",2,"CoupleRopeWidth",{KeyName = "Width of the Auto Couple Rope", Edit = {type = "Float", order = 5, min = 0, max = 9999}})
+    self:NetworkVar("String",0,"BrakeMaterial",{KeyName = "Handbrake Material", Edit = {type = "Generic", order = 6}})
+    self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 7, category = "Sounds"}})
+    self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
+    self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 9, category = "Sounds"}})
 end
 
 local function SetEntityOwner(ply,entity)
@@ -71,19 +72,20 @@ end
 
 if SERVER then
     function ENT:Initialize()
+        self:PhysicsInit(SOLID_VPHYSICS)
+        self:SetMoveType(MOVETYPE_VPHYSICS)
+        self:SetSolid(SOLID_VPHYSICS)
+        self:SetUseType(SIMPLE_USE)
+        self:SetCollisionGroup(20)
+        self:SetNWBool("LuaRailcar", true) 
+        self.HandBrake = 0
+        self.CanCouple = 1
+        self.CanCouple2 = 1
+
         timer.Simple(0,function()
             self:SetPos(self:GetPos()+Vector(0,0,35))
-            self:PhysicsInit(SOLID_VPHYSICS)
-            self:SetMoveType(MOVETYPE_VPHYSICS)
-            self:SetSolid(SOLID_VPHYSICS)
-            self:SetUseType(SIMPLE_USE)
-            self:SetCollisionGroup(20)
-            self:SetNWBool("LuaRailcar", true) 
-            self.HandBrake = 0 --Don't Change
-            self.CanCouple = 1 --Don't Change
-            self.CanCouple2 = 1 --Don't Change
 
-            if table.Count(constraint.FindConstraints(self,"Axis")) < 2 then
+            if table.Count(constraint.FindConstraints(self,"Axis")) == 0 then
                 if constraint.CanConstrain(self,0) then
                     self.Bogie1 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie1Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
                     self.Bogie1:SetBodygroup(1,self.BogieBodygroup)
@@ -124,27 +126,29 @@ if SERVER then
     end
 
     function ENT:Use(activator,caller,type,value)
-        if !activator:IsPlayer() then return end	
-        if PlayerWithinBounds(activator,self:LocalToWorld(self.HandBrakePos),45) then
-            self.HandBrake = self.HandBrake+1
-            if self.HandBrake > 1 then self.HandBrake = 0 end
+        if self:GetHandbrakeEnable() == true then
+            if !activator:IsPlayer() then return end	
+            if PlayerWithinBounds(activator,self:LocalToWorld(self.HandBrakePos),45) then
+                self.HandBrake = self.HandBrake+1
+                if self.HandBrake > 1 then self.HandBrake = 0 end
 
-            self.HandBrakeSound = CreateSound(self,self.HandBrakeChain[math.random(1,5)])
-            self.HandBrakeSound:PlayEx(1,100)
+                self.HandBrakeSound = CreateSound(self,self.HandBrakeChain[math.random(1,5)])
+                self.HandBrakeSound:PlayEx(1,100)
 
-            if self.HandBrake == 1 then
-                if IsValid(self.Bogies[1]) then
-                    self.Bogies[1]:GetPhysicsObject():SetMaterial(self:GetBrakeMaterial())
-                end
-                if IsValid(self.Bogies[2]) then
-                    self.Bogies[2]:GetPhysicsObject():SetMaterial(self:GetBrakeMaterial())
-                end
-            else
-                if IsValid(self.Bogies[1]) then
-                    self.Bogies[1]:GetPhysicsObject():SetMaterial("friction_00")
-                end
-                if IsValid(self.Bogies[2]) then
-                    self.Bogies[2]:GetPhysicsObject():SetMaterial("friction_00")
+                if self.HandBrake == 1 then
+                    if IsValid(self.Bogies[1]) then
+                        self.Bogies[1]:GetPhysicsObject():SetMaterial(self:GetBrakeMaterial())
+                    end
+                    if IsValid(self.Bogies[2]) then
+                        self.Bogies[2]:GetPhysicsObject():SetMaterial(self:GetBrakeMaterial())
+                    end
+                else
+                    if IsValid(self.Bogies[1]) then
+                        self.Bogies[1]:GetPhysicsObject():SetMaterial("friction_00")
+                    end
+                    if IsValid(self.Bogies[2]) then
+                        self.Bogies[2]:GetPhysicsObject():SetMaterial("friction_00")
+                    end
                 end
             end
         end
@@ -237,5 +241,5 @@ end
 
 duplicator.RegisterEntityClass("gmod_railcars_base", function(ply, data)
 	return duplicator.GenericDuplicatorFunction(ply, data)
-end, "Data", "CarType", "Debug", "CoupleRopeWidth", "CouplingOutofBounds", "CouplingEnable", "Ambient", "BrakeAmbient", "CoupleSound", "CouplingRopePoint", "BrakeMaterial",
+end, "Data", "CarType", "Debug", "CoupleRopeWidth", "CouplingOutofBounds", "CouplingEnable", "HandbrakeEnable", "Ambient", "BrakeAmbient", "CoupleSound", "CouplingRopePoint", "BrakeMaterial",
 "Model", "BogieModel", "BogieBodygroup", "BogieAngle", "Bogie1Pos", "Bogie2Pos", "HandBrakePos", "CouplerPos", "CouplerPos2", "HandBrakeChain")
