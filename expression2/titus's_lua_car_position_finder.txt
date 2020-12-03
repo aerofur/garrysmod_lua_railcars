@@ -1,0 +1,7 @@
+@name Titus's Lua Car Position Finder
+@inputs
+@outputs 
+@persist 
+@trigger none
+
+print(entity():isWeldedTo():toLocal(entity():pos()))
