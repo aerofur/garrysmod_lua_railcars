@@ -19,30 +19,7 @@ function ENT:SetupDataTables()
     self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 6, category = "Sounds"}})
     self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 7, category = "Sounds"}})
     self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
-
-    self:SetDebug(false)
-    self:SetCoupleRopeWidth(1.5)
-    self:SetCouplingOutofBounds(200)
-    self:SetCouplingEnable(true)
-    self:SetAmbient("titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/wheels/defective/s_freightdefectivewheel02.wav")
-    self:SetBrakeAmbient("titus's locomotive sound expansion pack/resources/railvehicle/freightstock/resources/brakes/s_freightbraking03.wav")
-    self:SetCoupleSound("opencontrol/misc/couple1.wav")
-    self:SetCouplingRopePoint(170)
-    self:SetBrakeMaterial("metal")
 end
-
-local Model = "models/lazpack/freightcars/trinity_3230_pd.mdl"
-local BogieModel = "models/magtrains/trucks/barber_s2_rsg.mdl"
-local Bogie1Pos = Vector(201,0,-0.5)
-local Bogie2Pos = Vector(-201,0,-0.5)
-local HandBrakePos = Vector(267,-19,65)
-local CouplerPos = Vector(278,0,8)
-local CouplerPos2 = Vector(-278,0,8)
-local HandBrakeChain = {"titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain01.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain02.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain03.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain04.wav",
-                        "titus's locomotive sound expansion pack/plugins/dlc/coalhopperbethogonii/content/view/audio/resources/handbrake/s_bethgonhandbrakechain05.wav"}
 
 local function SetEntityOwner(ply,entity)
     if not IsValid(entity) or not IsValid(ply) then return end
@@ -103,7 +80,7 @@ if SERVER then
 
         local ent = ents.Create(ClassName)
         ent:SetCreator(ply)
-        ent:SetPos(SpawnPos+Vector(0,0,65))
+        ent:SetPos(SpawnPos)
         ent:SetAngles(SpawnAng)
         ent:Spawn()
         ent:Activate()
@@ -113,35 +90,38 @@ if SERVER then
     end
 
     function ENT:Initialize()
-        self:SetModel(Model)
-        self:PhysicsInit(SOLID_VPHYSICS)
-        self:SetMoveType(MOVETYPE_VPHYSICS)
-        self:SetSolid(SOLID_VPHYSICS)
-        self:SetUseType(SIMPLE_USE)
-        self:SetCollisionGroup(20)
-        self:SetNWBool("LuaRailcar", true) 
-        self.HandBrake = 0 --Don't Change
-        self.CanCouple = 1 --Don't Change
-        self.CanCouple2 = 1 --Don't Change
+        timer.Simple(0,function()
+            self:SetModel(self.Model)
+            self:SetPos(self:GetPos()+Vector(0,0,35))
+            self:PhysicsInit(SOLID_VPHYSICS)
+            self:SetMoveType(MOVETYPE_VPHYSICS)
+            self:SetSolid(SOLID_VPHYSICS)
+            self:SetUseType(SIMPLE_USE)
+            self:SetCollisionGroup(20)
+            self:SetNWBool("LuaRailcar", true) 
+            self.HandBrake = 0 --Don't Change
+            self.CanCouple = 1 --Don't Change
+            self.CanCouple2 = 1 --Don't Change
 
-        if constraint.CanConstrain(self,0) then
-            self.Bogie1 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie1Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
-            self.Bogie1:SetBodygroup(1,2)
-            constraint.Axis(self.Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+            if constraint.CanConstrain(self,0) then
+                self.Bogie1 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie1Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
+                self.Bogie1:SetBodygroup(1,2)
+                constraint.Axis(self.Bogie1,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-            self.Bogie2 = ModelCreate("prop_physics",nil,BogieModel,self:LocalToWorld(Bogie2Pos),self:GetAngles()+Angle(0,90,0),0,0,self:GetCreator())
-            self.Bogie2:SetBodygroup(1,2)
-            constraint.Axis(self.Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
+                self.Bogie2 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie2Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
+                self.Bogie2:SetBodygroup(1,2)
+                constraint.Axis(self.Bogie2,self,0,0,Vector(0,0,0),Vector(0,0,0),0,0,0,1,Vector(0,0,1))
 
-            self:DeleteOnRemove(self.Bogie1)
-            self:DeleteOnRemove(self.Bogie2)
-            self.Bogies = {self.Bogie1,self.Bogie2}
-        end
+                self:DeleteOnRemove(self.Bogie1)
+                self:DeleteOnRemove(self.Bogie2)
+                self.Bogies = {self.Bogie1,self.Bogie2}
+            end
 
-        self.AmbientTrack = CreateSound(self,self:GetAmbient())
-        self.AmbientTrack:PlayEx(1,0)
-        self.AmbientBrake = CreateSound(self,self:GetBrakeAmbient())
-        self.AmbientBrake:PlayEx(1,0)
+            self.AmbientTrack = CreateSound(self,self:GetAmbient())
+            self.AmbientTrack:PlayEx(1,0)
+            self.AmbientBrake = CreateSound(self,self:GetBrakeAmbient())
+            self.AmbientBrake:PlayEx(1,0)
+        end)
     end
 
     function ENT:PostEntityPaste(ply,ent,createdEntities)
@@ -164,11 +144,11 @@ if SERVER then
 
     function ENT:Use(activator,caller,type,value)
         if (!activator:IsPlayer()) then return end	
-        if PlayerWithinBounds(activator,self:LocalToWorld(HandBrakePos),45) then
+        if PlayerWithinBounds(activator,self:LocalToWorld(self.HandBrakePos),45) then
             self.HandBrake = self.HandBrake+1
             if self.HandBrake > 1 then self.HandBrake = 0 end
 
-            self.HandBrakeSound = CreateSound(self,HandBrakeChain[math.random(1,5)])
+            self.HandBrakeSound = CreateSound(self,self.HandBrakeChain[math.random(1,5)])
             self.HandBrakeSound:PlayEx(1,100)
 
             if self.HandBrake == 1 then
@@ -190,8 +170,8 @@ if SERVER then
     end
 
     function ENT:Think()
-        local CouplerFind = ents.FindAlongRay(self:LocalToWorld(CouplerPos+Vector(0,0,-18)),self:LocalToWorld(CouplerPos+Vector(100,0,-18)))
-        local CouplerFind2 = ents.FindAlongRay(self:LocalToWorld(CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(CouplerPos2+Vector(-100,0,-18)))
+        local CouplerFind = ents.FindAlongRay(self:LocalToWorld(self.CouplerPos+Vector(0,0,-18)),self:LocalToWorld(self.CouplerPos+Vector(100,0,-18)))
+        local CouplerFind2 = ents.FindAlongRay(self:LocalToWorld(self.CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(self.CouplerPos2+Vector(-100,0,-18)))
         local Velocity = self:GetPhysicsObject():GetVelocity():Length()
         local VelocityClamped = math.Clamp(Velocity/5,0,250)
         self.AmbientTrack:ChangePitch(VelocityClamped)
@@ -260,13 +240,13 @@ else
 
         if self:GetDebug() == true then 
             render.DrawWireframeBox(self:GetPos(),self:GetAngles(),self:OBBMins(),self:OBBMaxs(),Color(255,0,0),false) --car bounding
-            render.DrawWireframeBox(self:LocalToWorld(Bogie1Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
-            render.DrawWireframeBox(self:LocalToWorld(Bogie2Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
-            render.DrawWireframeBox(self:LocalToWorld(HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
-            render.DrawWireframeBox(self:LocalToWorld(CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-            render.DrawWireframeBox(self:LocalToWorld(CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
-            render.DrawLine(self:LocalToWorld(CouplerPos+Vector(0,0,-18)),self:LocalToWorld(CouplerPos+Vector(100,0,-18)),Color(100,210,255)) --coupler finder
-            render.DrawLine(self:LocalToWorld(CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(CouplerPos2+Vector(-100,0,-18)),Color(100,210,255)) --coupler finder
+            render.DrawWireframeBox(self:LocalToWorld(self.Bogie1Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
+            render.DrawWireframeBox(self:LocalToWorld(self.Bogie2Pos),self:GetAngles(),Vector(10,10,10),Vector(-10,-10,-10),Color(0,255,0),false) --bogie
+            render.DrawWireframeBox(self:LocalToWorld(self.HandBrakePos),self:GetAngles(),Vector(4,12,12),Vector(-4,-12,-12),Color(0,255,0),false) --handbrake
+            render.DrawWireframeBox(self:LocalToWorld(self.CouplerPos),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
+            render.DrawWireframeBox(self:LocalToWorld(self.CouplerPos2),self:GetAngles(),Vector(10,10,8),Vector(-10,-10,-8),Color(0,0,255),false) --coupler
+            render.DrawLine(self:LocalToWorld(self.CouplerPos+Vector(0,0,-18)),self:LocalToWorld(self.CouplerPos+Vector(100,0,-18)),Color(100,210,255)) --coupler finder
+            render.DrawLine(self:LocalToWorld(self.CouplerPos2+Vector(0,0,-18)),self:LocalToWorld(self.CouplerPos2+Vector(-100,0,-18)),Color(100,210,255)) --coupler finder
         end
     end
     return
