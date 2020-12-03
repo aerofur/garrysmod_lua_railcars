@@ -1,7 +1,7 @@
 AddCSLuaFile()
 DEFINE_BASECLASS("base_gmodentity") 
 ENT.Type = "anim"
-ENT.PrintName = "Test Car"
+ENT.PrintName = "Railcars_Base"
 ENT.Author = "Titus Studios"
 ENT.Category = "Railcars"
 ENT.RenderGroup	= RENDERGROUP_OPAQUE
