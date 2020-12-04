@@ -51,9 +51,12 @@ local function SpawnCar(ply,args)
     ent.Bogie1Pos = Config.Bogie1Pos
     ent.Bogie2Pos = Config.Bogie2Pos
     ent.HandBrakePos = Config.HandBrakePos
+    ent.HandBrakePos2 = Config.HandBrakePos2
+    ent.DualHandbrake = Config.DualHandbrake
     ent.CouplerPos = Config.CouplerPos
     ent.CouplerPos2 = Config.CouplerPos2
     ent.HandBrakeChain = Config.HandBrakeChain
+    ent.DebugType = args
 
 	undo.Create("Railcar")
 		undo.SetPlayer(ply)
