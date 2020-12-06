@@ -65,13 +65,13 @@ if CLIENT then
         icon:SetAdminOnly(obj.admin)
         icon:SetColor(Color(0,0,0,255))
         icon.DoClick = function()
-            RunConsoleCommand("luarailcars_spawn", obj.spawnname)
+            RunConsoleCommand("luarailcars_spawn",obj.spawnname)
             surface.PlaySound("ui/buttonclickrelease.wav")
         end
 
         icon.OpenMenu = function(icon)
             local menu = DermaMenu()
-                menu:AddOption("Copy to Clipboard",function() SetClipboardText( obj.spawnname ) end)
+                menu:AddOption("Copy to Clipboard",function() SetClipboardText(obj.spawnname) end)
             menu:Open()
         end
         
