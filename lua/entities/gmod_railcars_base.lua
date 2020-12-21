@@ -74,7 +74,9 @@ if SERVER then
         self.CanCouple = 1
         self.CanCouple2 = 1
         self.GenerateBogies = true
+        self.BogiesInit = false
         self:SetPos(self:GetPos() + Vector(0,0,35))
+        self.Bogies = {}
 
         timer.Simple(0,function()
             self:SetPos(self:GetPos() + Vector(0,0,35))
@@ -88,18 +90,8 @@ if SERVER then
 
     function ENT:OnDuplicated()
         self.GenerateBogies = false
-    end
-
-    function ENT:PostEntityPaste(ply,ent,createdEntities)
-        local I = 0
-        self.Bogies = {}
-
-        for index,Entity in pairs(createdEntities) do
-            if Entity:GetClass() == "prop_physics" then
-                I = I + 1
-                self.Bogies[I] = Entity
-            end
-        end
+        self.CanCouple = 0
+        self.CanCouple2 = 0
     end
 
     function ENT:Use(activator,caller,type,value)
@@ -171,7 +163,24 @@ if SERVER then
             self.Bogies = {self.Bogie1,self.Bogie2}
             self.BogieSpawned1 = self.Bogie1
             self.BogieSpawned2 = self.Bogie2
+            self.BogiesInit = true
             self.GenerateBogies = false
+        elseif self.GenerateBogies == false and self.BogiesInit == false then
+            local Cons = constraint.FindConstraints(self,"Axis")
+            if Cons[1] ~= nil and Cons[2] ~= nil then
+                if IsValid(Cons[1].Ent1) and IsValid(Cons[2].Ent1) then
+                    local Coupler1 = self:LocalToWorld(self.CouplerPos):Distance(self:LocalToWorld(Cons[1].Ent1:GetPos()))
+                    local Coupler2 = self:LocalToWorld(self.CouplerPos):Distance(self:LocalToWorld(Cons[2].Ent1:GetPos()))
+
+                    if math.min(Coupler1,Coupler2) == Coupler1 then
+                        self.Bogies = {Cons[1].Ent1,Cons[2].Ent1}
+                    else
+                        self.Bogies = {Cons[2].Ent1,Cons[1].Ent1}
+                    end
+
+                    self.BogiesInit = true
+                end
+            end
         end
 
         local CouplerFind = ents.FindAlongRay(self:LocalToWorld(self.CouplerPos + Vector(0,0,18)),self:LocalToWorld(self.CouplerPos + Vector(100,0,18)))
@@ -184,40 +193,48 @@ if SERVER then
         if self:GetCouplingEnable() == true and IsValid(self.Bogies[1]) and IsValid(self.Bogies[2]) then
             for index,Entity in pairs(CouplerFind) do
                 if Entity ~= self and Entity:GetClass() == "gmod_railcars_base" then
-                        local Coupler1 = self:LocalToWorld(self.CouplerPos):Distance(Entity:LocalToWorld(Entity.CouplerPos))
-                        local Coupler2 = self:LocalToWorld(self.CouplerPos):Distance(Entity:LocalToWorld(Entity.CouplerPos2))
+                    local Coupler1 = self:LocalToWorld(self.CouplerPos):Distance(Entity:LocalToWorld(Entity.CouplerPos))
+                    local Coupler2 = self:LocalToWorld(self.CouplerPos):Distance(Entity:LocalToWorld(Entity.CouplerPos2))
 
-                        if math.min(Coupler1,Coupler2) == Coupler1 then
-                            if IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[1]) and Coupler1 < self:GetCouplingRopePoint() then
-                                if constraint.Find(self.Bogies[1],Entity.Bogies[1],"Rope",0,0) then self.CanCouple = 0 return end
-
-                                if self.CanCouple == 1 then
-                                    timer.Simple(0,function()
-                                        constraint.Rope(self.Bogies[1],Entity.Bogies[1],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity.Bogies[1]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
-                                        self.CoupleSound = CreateSound(self,self:GetCoupleSound())
-                                        self.CoupleSound:PlayEx(1,100)
-                                        self.CanCouple = 0
-                                    end)
+                    if math.min(Coupler1,Coupler2) == Coupler1 then
+                        if IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[1]) and Coupler1 < self:GetCouplingRopePoint() then
+                            if not Entity.Bogies[1] == self.Bogies[1] or self.Bogies[2] then
+                                if not IsValid(constraint.Find(self.Bogies[1],Entity.Bogies[1],"Rope",0,0)) then
+                                    if self.CanCouple == 1 then
+                                        timer.Simple(0,function()
+                                            constraint.Rope(self.Bogies[1],Entity.Bogies[1],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity.Bogies[1]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                                            self.CoupleSound = CreateSound(self,self:GetCoupleSound())
+                                            self.CoupleSound:PlayEx(1,100)
+                                            self.CanCouple = 0
+                                        end)
+                                    end
+                                else
+                                    self.CanCouple = 0
                                 end
-                            elseif IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[1]) and Coupler1 > self:GetCouplingOutofBounds() then
-                                self.CanCouple = 1
                             end
-                        else
-                            if IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[2]) and Coupler2 < self:GetCouplingRopePoint() then
-                                if constraint.Find(self.Bogies[1],Entity.Bogies[2],"Rope",0,0) then self.CanCouple = 0 return end
-
-                                if self.CanCouple == 1 then
-                                    timer.Simple(0,function()
-                                        constraint.Rope(self.Bogies[1],Entity.Bogies[2],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity.Bogies[2]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
-                                        self.CoupleSound = CreateSound(self,self:GetCoupleSound())
-                                        self.CoupleSound:PlayEx(1,100)
-                                        self.CanCouple = 0
-                                    end)
-                                end
-                            elseif IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[2]) and Coupler2 > self:GetCouplingOutofBounds() then
-                                self.CanCouple = 1
-                            end
+                        elseif IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[1]) and Coupler1 > self:GetCouplingOutofBounds() then
+                            self.CanCouple = 1
                         end
+                    elseif math.min(Coupler1,Coupler2) == Coupler2 then
+                        if IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[2]) and Coupler2 < self:GetCouplingRopePoint() then
+                            if not Entity.Bogies[2] == self.Bogies[1] or self.Bogies[2] then
+                                if not IsValid(constraint.Find(self.Bogies[1],Entity.Bogies[2],"Rope",0,0)) then
+                                    if self.CanCouple == 1 then
+                                        timer.Simple(0,function()
+                                            constraint.Rope(self.Bogies[1],Entity.Bogies[2],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[1]:GetPos():Distance(Entity.Bogies[2]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                                            self.CoupleSound = CreateSound(self,self:GetCoupleSound())
+                                            self.CoupleSound:PlayEx(1,100)
+                                            self.CanCouple = 0
+                                        end)
+                                    end
+                                else
+                                    self.CanCouple = 0
+                                end
+                            end
+                        elseif IsValid(self.Bogies[1]) and IsValid(Entity.Bogies[2]) and Coupler2 > self:GetCouplingOutofBounds() then
+                            self.CanCouple = 1
+                        end
+                    end
                 end
             end
 
@@ -227,34 +244,42 @@ if SERVER then
                     local Coupler2 = self:LocalToWorld(self.CouplerPos2):Distance(Entity:LocalToWorld(Entity.CouplerPos2))
 
                     if math.min(Coupler1,Coupler2) == Coupler1 then
-                        if IsValid(self.Bogies[2]) and IsValid(Entity.Bogies[1]) and Coupler1 < self:GetCouplingRopePoint() then
-                            if constraint.Find(self.Bogies[2],Entity.Bogies[1],"Rope",0,0) then self.CanCouple = 0 return end
-
-                            if self.CanCouple == 1 then
-                                timer.Simple(0,function()
-                                    constraint.Rope(self.Bogies[2],Entity.Bogies[1],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity.Bogies[1]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
-                                    self.CoupleSound = CreateSound(self,self:GetCoupleSound())
-                                    self.CoupleSound:PlayEx(1,100)
-                                    self.CanCouple = 0
-                                end)
+                        if not IsValid(self.Bogies[2]) and IsValid(Entity.Bogies[1]) and Coupler1 < self:GetCouplingRopePoint() then
+                            if not Entity.Bogies[1] == self.Bogies[1] or self.Bogies[2] then
+                                if IsValid(constraint.Find(self.Bogies[2],Entity.Bogies[1],"Rope",0,0)) then
+                                    if self.CanCouple2 == 1 then
+                                        timer.Simple(0,function()
+                                            constraint.Rope(self.Bogies[2],Entity.Bogies[1],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity.Bogies[1]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                                            self.CoupleSound = CreateSound(self,self:GetCoupleSound())
+                                            self.CoupleSound:PlayEx(1,100)
+                                            self.CanCouple2 = 0
+                                        end)
+                                    end
+                                else
+                                    self.CanCouple2 = 0
+                                end
                             end
                         elseif IsValid(self.Bogies[2]) and IsValid(Entity.Bogies[1]) and Coupler1 > self:GetCouplingOutofBounds() then
-                            self.CanCouple = 1
+                            self.CanCouple2 = 1
                         end
-                    else
+                    elseif math.min(Coupler1,Coupler2) == Coupler2 then
                         if IsValid(self.Bogies[2]) and IsValid(Entity.Bogies[2]) and Coupler2 < self:GetCouplingRopePoint() then
-                            if constraint.Find(self.Bogies[2],Entity.Bogies[2],"Rope",0,0) then self.CanCouple = 0 return end
-
-                            if self.CanCouple == 1 then
-                                timer.Simple(0,function()
-                                    constraint.Rope(self.Bogies[2],Entity.Bogies[2],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity.Bogies[2]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
-                                    self.CoupleSound = CreateSound(self,self:GetCoupleSound())
-                                    self.CoupleSound:PlayEx(1,100)
-                                    self.CanCouple = 0
-                                end)
+                            if not Entity.Bogies[2] == self.Bogies[1] or self.Bogies[2] then
+                                if not IsValid(constraint.Find(self.Bogies[2],Entity.Bogies[2],"Rope",0,0)) then
+                                    if self.CanCouple2 == 1 then
+                                        timer.Simple(0,function()
+                                            constraint.Rope(self.Bogies[2],Entity.Bogies[2],0,0,Vector(0,0,0),Vector(0,0,0),self.Bogies[2]:GetPos():Distance(Entity.Bogies[2]:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                                            self.CoupleSound = CreateSound(self,self:GetCoupleSound())
+                                            self.CoupleSound:PlayEx(1,100)
+                                            self.CanCouple2 = 0
+                                        end)
+                                    end
+                                else
+                                    self.CanCouple2 = 0
+                                end
                             end
                         elseif IsValid(self.Bogies[2]) and IsValid(Entity.Bogies[2]) and Coupler2 > self:GetCouplingOutofBounds() then
-                            self.CanCouple = 1
+                            self.CanCouple2 = 1
                         end
                     end
                 end
