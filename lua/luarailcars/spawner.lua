@@ -1,10 +1,10 @@
 if SERVER then
     local function SetEntityOwner(ply,entity)
         if not IsValid(entity) or not IsValid(ply) then return end
-        
+
         if CPPI then
             if not IsEntity(ply) then return end
-            
+
             if IsValid(ply) then
                 entity:CPPISetOwner(ply)
             end
@@ -33,7 +33,7 @@ if SERVER then
 
         ent.CarType = args
         SetEntityOwner(ply,ent)
-        
+
         ent:SetDebug(Config.Debug)
         ent:SetCoupleRopeWidth(Config.CoupleRopeWidth)
         ent:SetCouplingOutofBounds(Config.CouplingOutofBounds)
