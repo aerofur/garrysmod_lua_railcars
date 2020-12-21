@@ -167,19 +167,17 @@ if SERVER then
             self.GenerateBogies = false
         elseif self.GenerateBogies == false and self.BogiesInit == false then
             local Cons = constraint.FindConstraints(self,"Axis")
-            if Cons[1] ~= nil and Cons[2] ~= nil then
-                if IsValid(Cons[1].Ent1) and IsValid(Cons[2].Ent1) then
-                    local Coupler1 = self:LocalToWorld(self.CouplerPos):Distance(self:LocalToWorld(Cons[1].Ent1:GetPos()))
-                    local Coupler2 = self:LocalToWorld(self.CouplerPos):Distance(self:LocalToWorld(Cons[2].Ent1:GetPos()))
+            if Cons[1] ~= nil and Cons[2] ~= nil and IsValid(Cons[1].Ent1) and IsValid(Cons[2].Ent1) then
+                local Coupler1 = self:LocalToWorld(self.CouplerPos):Distance(self:LocalToWorld(Cons[1].Ent1:GetPos()))
+                local Coupler2 = self:LocalToWorld(self.CouplerPos):Distance(self:LocalToWorld(Cons[2].Ent1:GetPos()))
 
-                    if math.min(Coupler1,Coupler2) == Coupler1 then
-                        self.Bogies = {Cons[1].Ent1,Cons[2].Ent1}
-                    else
-                        self.Bogies = {Cons[2].Ent1,Cons[1].Ent1}
-                    end
-
-                    self.BogiesInit = true
+                if math.min(Coupler1,Coupler2) == Coupler1 then
+                    self.Bogies = {Cons[1].Ent1,Cons[2].Ent1}
+                else
+                    self.Bogies = {Cons[2].Ent1,Cons[1].Ent1}
                 end
+
+                self.BogiesInit = true
             end
         end
 
