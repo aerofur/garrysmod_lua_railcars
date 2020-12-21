@@ -73,12 +73,12 @@ if SERVER then
         self.HandBrake = 0
         self.CanCouple = 1
         self.CanCouple2 = 1
+        self:SetPos(self:GetPos()+Vector(0,0,35))
 
         timer.Simple(0,function()
             self:SetPos(self:GetPos()+Vector(0,0,35))
             self:SetNWString("DebugType",self.CarType)
 
-            print(table.IsEmpty(constraint.FindConstraints(self,"Axis")))
             if table.IsEmpty(constraint.FindConstraints(self,"Axis")) == true then
                 if constraint.CanConstrain(self,0) then
                     self.Bogie1 = ModelCreate("prop_physics",nil,self.BogieModel,self:LocalToWorld(self.Bogie1Pos),self:GetAngles()+self.BogieAngle,0,0,self:GetCreator())
