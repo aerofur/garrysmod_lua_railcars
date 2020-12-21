@@ -13,7 +13,7 @@ if SERVER then
 
     local function SpawnCar(ply,args)
         tr = ply:GetEyeTraceNoCursor()
-        if ( !tr.Hit ) then return end
+        if not tr.Hit then return end
 
         local SpawnPos = tr.HitPos + tr.HitNormal * 10
         local SpawnAng = ply:EyeAngles()
