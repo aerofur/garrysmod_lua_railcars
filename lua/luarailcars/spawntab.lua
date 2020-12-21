@@ -22,12 +22,12 @@ if CLIENT then
                 self.PropPanel = vgui.Create("ContentContainer",pnlContent)
                 self.PropPanel:SetVisible(false)
                 self.PropPanel:SetTriggerSpawnlistChange(false)
-                
+
                 for k, ent in SortedPairsByMemberValue(v,"PrintName") do
                     spawnmenu.CreateContentIcon("railcars",self.PropPanel,{
                         nicename = ent.PrintName or ent.ClassName,
                         spawnname = ent.ClassName,
-                        material = "spawnicons/"..ent.ModelPath:match("(.+)%..+$")..".png",
+                        material = "spawnicons/" .. ent.ModelPath:match("(.+)%..+$") .. ".png",
                         admin = ent.AdminOnly
                     })
                 end
@@ -74,7 +74,7 @@ if CLIENT then
                 menu:AddOption("Copy to Clipboard",function() SetClipboardText(obj.spawnname) end)
             menu:Open()
         end
-        
+
         if IsValid(container) then
             container:Add(icon)
         end
