@@ -3,6 +3,8 @@ include("luarailcars/spawner.lua")
 include("luarailcars/config/base.lua")
 include("luarailcars/config/base_phx.lua")
 
+AddCSLuaFile("entities/gmod_railcars_base.lua")
+AddCSLuaFile("luarailcars/spawntab.lua")
 AddCSLuaFile("luarailcars/spawntab.lua")
 AddCSLuaFile("luarailcars/spawner.lua")
 AddCSLuaFile("luarailcars/config/base.lua")
