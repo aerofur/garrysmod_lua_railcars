@@ -6,7 +6,7 @@ ENT.Author = "Titus Studios"
 ENT.Category = "Railcars"
 ENT.RenderGroup	= RENDERGROUP_OPAQUE
 ENT.Editable = true
-ENT.Spawnable = false
+ENT.Spawnable = true
 ENT.AdminOnly = false
 
 function ENT:SetupDataTables()
@@ -79,6 +79,7 @@ if SERVER then
         self.Bogies = {}
 
         timer.Simple(0,function()
+            self:SetModel(self.Model)
             self:SetPos(self:GetPos() + Vector(0,0,35))
             self:SetNWString("DebugType",self.CarType)
             self.AmbientTrack = CreateSound(self,self:GetAmbient())
