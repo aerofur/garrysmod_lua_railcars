@@ -5,7 +5,7 @@
 	[
 		"build",
 		"realism"
-	]
+	],
 	"ignore":
 	[
 		"*.psd",
@@ -13,6 +13,7 @@
 		"*.svn*",
 		"*.txt",
 		"*.xcf",
+		"*.md",
 		".git*",
 		".gitignore",
 		"LICENSE",
