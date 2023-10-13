@@ -17,9 +17,10 @@ function ENT:SetupDataTables()
     self:NetworkVar("Float",1,"CouplingOutofBounds",{KeyName = "Coupling Out of Bounds", Edit = {type = "Float", order = 4, min = 0, max = 9999}})
     self:NetworkVar("Float",2,"CoupleRopeWidth",{KeyName = "Width of the Auto Couple Rope", Edit = {type = "Float", order = 5, min = 0, max = 9999}})
     self:NetworkVar("String",0,"BrakeMaterial",{KeyName = "Handbrake Material", Edit = {type = "Generic", order = 6}})
-    self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 7, category = "Sounds"}})
-    self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
-    self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 9, category = "Sounds"}})
+    self:NetworkVar("Bool",4,"EnableSounds",{KeyName = "Enable Sounds", Edit = {type = "Boolean", order = 7}})
+    self:NetworkVar("String",1,"Ambient",{KeyName = "Rolling Sound", Edit = {type = "Generic", order = 8, category = "Sounds"}})
+    self:NetworkVar("String",2,"BrakeAmbient",{KeyName = "Brake Sound", Edit = {type = "Generic", order = 9, category = "Sounds"}})
+    self:NetworkVar("String",3,"CoupleSound",{KeyName = "Couple Sound", Edit = {type = "Generic", order = 10, category = "Sounds"}})
 end
 
 local function SetEntityOwner(ply,entity)
@@ -62,6 +63,18 @@ local function PlayerWithinBounds(ply,otherPly,dist)
     return ply:EyePos():DistToSqr(otherPly) < (dist * dist)
 end
 
+local function CreateAmbientSounds(Entity)
+    Entity.AmbientTrack = CreateSound(Entity,Entity:GetAmbient())
+    Entity.AmbientTrack:PlayEx(1,0)
+    Entity.AmbientBrake = CreateSound(Entity,Entity:GetBrakeAmbient())
+    Entity.AmbientBrake:PlayEx(1,0)
+end
+
+local function RemoveAmbientSounds(Entity)
+    Entity.AmbientTrack:Stop()
+    Entity.AmbientBrake:Stop()
+end
+
 if SERVER then
     function ENT:Initialize()
         self:PhysicsInit(SOLID_VPHYSICS)
@@ -78,16 +91,17 @@ if SERVER then
         self.HaltCouplingDupe = false
         self:SetPos(self:GetPos() + Vector(0,0,35))
         self.Bogies = {}
+        self.SoundsEnabled = self:GetEnableSounds()
 
         timer.Simple(0,function()
             self:SetSkin(math.random(0,self:SkinCount()))
             self:SetModel(self.Model)
             self:SetPos(self:GetPos() + Vector(0,0,35))
             self:SetNWString("DebugType",self.CarType)
-            self.AmbientTrack = CreateSound(self,self:GetAmbient())
-            self.AmbientTrack:PlayEx(1,0)
-            self.AmbientBrake = CreateSound(self,self:GetBrakeAmbient())
-            self.AmbientBrake:PlayEx(1,0)
+
+            if self.SoundsEnabled == true then
+                CreateAmbientSounds(self)
+            end
         end)
     end
 
@@ -183,12 +197,25 @@ if SERVER then
             end
         end
 
+        self.SoundsEnabled = self:GetEnableSounds()
+
+        if self.SoundsEnabled == true then
+            if IsValid(self.AmbientTrack) == false then -- Check if AmbientTrack has already been declared, this would be due to AdvDupe.
+                CreateAmbientSounds(self)
+            end
+
+            local Velocity = self:GetPhysicsObject():GetVelocity():Length()
+            local VelocityClamped = math.Clamp(Velocity / 5,0,250)
+            self.AmbientTrack:ChangePitch(VelocityClamped)
+            self.AmbientBrake:ChangePitch(VelocityClamped * self.HandBrake)
+        else
+            if IsValid(self.AmbientTrack) == true then
+                RemoveAmbientSounds(self)
+            end
+        end
+
         local CouplerFind = ents.FindAlongRay(self:LocalToWorld(self.CouplerPos + Vector(0,0,18)),self:LocalToWorld(self.CouplerPos + Vector(100,0,18)))
         local CouplerFind2 = ents.FindAlongRay(self:LocalToWorld(self.CouplerPos2 + Vector(0,0,18)),self:LocalToWorld(self.CouplerPos2 + Vector(-100,0,18)))
-        local Velocity = self:GetPhysicsObject():GetVelocity():Length()
-        local VelocityClamped = math.Clamp(Velocity / 5,0,250)
-        self.AmbientTrack:ChangePitch(VelocityClamped)
-        self.AmbientBrake:ChangePitch(VelocityClamped * self.HandBrake)
 
         if self:GetCouplingEnable() == true and IsValid(self.Bogies[1]) and IsValid(self.Bogies[2]) and self.HaltCouplingDupe == false then
             for index,Entity in pairs(CouplerFind) do
@@ -219,8 +246,10 @@ if SERVER then
                     if not IsValid(constraint.Find(ClosestBogie,ClosestForeignBogie,"Rope",0,0)) then
                         if CouplerDistance < self:GetCouplingRopePoint() and self.CanCouple == 1 then
                             constraint.Rope(ClosestBogie,ClosestForeignBogie,0,0,Vector(0,0,0),Vector(0,0,0),ClosestBogie:GetPos():Distance(ClosestForeignBogie:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                            
                             self.CoupleSound = CreateSound(self,self:GetCoupleSound())
                             self.CoupleSound:PlayEx(1,100)
+
                             self.CanCouple = 0
                         elseif CouplerDistance > self:GetCouplingOutofBounds() and self.CanCouple == 0 then
                             self.CanCouple = 1
@@ -257,8 +286,10 @@ if SERVER then
                     if not IsValid(constraint.Find(ClosestBogie,ClosestForeignBogie,"Rope",0,0)) then
                         if CouplerDistance < self:GetCouplingRopePoint() and self.CanCouple == 1 then
                             constraint.Rope(ClosestBogie,ClosestForeignBogie,0,0,Vector(0,0,0),Vector(0,0,0),ClosestBogie:GetPos():Distance(ClosestForeignBogie:GetPos()),0,0,self:GetCoupleRopeWidth(),"cable/cable",true)
+                            
                             self.CoupleSound = CreateSound(self,self:GetCoupleSound())
                             self.CoupleSound:PlayEx(1,100)
+
                             self.CanCouple = 0
                         elseif CouplerDistance > self:GetCouplingOutofBounds() and self.CanCouple == 0 then
                             self.CanCouple = 1
@@ -274,12 +305,13 @@ if SERVER then
             end)
         end
 
-        hook.Add("AdvDupe_FinishPasting", "luarailcars_dupefinished", DupeFinished())
+        hook.Add("AdvDupe_FinishPasting", "luarailcars_dupefinished", DupeFinished)
     end
 
     function ENT:OnRemove()
-        self.AmbientTrack:Stop()
-        self.AmbientBrake:Stop()
+        if self.SoundsEnabled == true then
+            RemoveAmbientSounds(self)
+        end
     end
 else
     function ENT:Draw()
@@ -307,5 +339,5 @@ end
 
 duplicator.RegisterEntityClass("gmod_railcars_base", function(ply, data)
     return duplicator.GenericDuplicatorFunction(ply, data)
-end, "Data", "CarType", "CoupleRopeWidth", "CouplingOutofBounds", "CouplingEnable", "HandbrakeEnable", "Ambient", "BrakeAmbient", "CoupleSound", "CouplingRopePoint", "BrakeMaterial",
+end, "Data", "CarType", "CoupleRopeWidth", "CouplingOutofBounds", "CouplingEnable", "HandbrakeEnable", "EnableSounds", "Ambient", "BrakeAmbient", "CoupleSound", "CouplingRopePoint", "BrakeMaterial",
 "Model", "BogieModel", "BogieBodygroup", "BogieAngle", "Bogie1Pos", "Bogie2Pos", "HandBrakePos", "CouplerPos", "CouplerPos2", "HandBrakeChain", "GenerateBogies", "BogiesInit")
