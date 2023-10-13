@@ -14,7 +14,7 @@
 1. Windows:
     1. Open Command Prompt
     2. Change directory to your Garry's Mod addon path: `cd "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\addons"`
-    3. Clone the Repo: `git clone https://github.com/TitusStudiosMediaGroup/garrysmod_lua_railcars.git`
+    3. Clone the Repo: `git clone https://github.com/aerofur/garrysmod_lua_railcars.git`
     4. Rename the cloned repo: `ren garrysmod_lua_railcars lua_railcars`
 2. Linux/UNIX
     1. To be written
